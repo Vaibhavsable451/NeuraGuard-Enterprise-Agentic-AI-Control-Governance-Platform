@@ -1,0 +1,36 @@
+name: Deploy to Azure
+
+on:
+  workflow_run:
+    workflows: ["CI", "Evaluation Gate"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Deploy FastAPI backend to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_API_APP_NAME }}
+          publish-profile: ${{ secrets.AZURE_API_PUBLISH_PROFILE }}
+          package: .
+
+      - name: Deploy Streamlit frontend to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_STREAMLIT_APP_NAME }}
+          publish-profile: ${{ secrets.AZURE_STREAMLIT_PUBLISH_PROFILE }}
+          package: .

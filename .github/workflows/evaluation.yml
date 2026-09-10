@@ -1,0 +1,53 @@
+name: Evaluation Gate
+
+on:
+  push:
+    branches: [main]
+  workflow_call:
+    outputs:
+      passed:
+        description: "Whether the evaluation gate passed"
+        value: ${{ jobs.evaluate.outputs.passed }}
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    env:
+      MOCK_MODE: "true"
+      DATA_DIR: "data_ci"
+      THRESHOLD_OVERALL: "90"
+      THRESHOLD_GROUNDEDNESS: "90"
+      THRESHOLD_SECURITY: "90"
+      THRESHOLD_CRITICAL_VULNS: "0"
+    outputs:
+      passed: ${{ steps.gate.outputs.passed }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Security tests
+        run: pytest tests/security -v
+
+      - name: RAG evaluation
+        run: pytest tests/evaluation -v
+
+      - name: Red-team tests
+        run: pytest tests/security/test_redteam.py -v
+
+      - name: Regression tests
+        run: pytest tests/regression -v
+
+      - name: Run full evaluation script
+        run: python scripts/run_evaluation_gate.py
+
+      - name: Set gate output
+        id: gate
+        run: echo "passed=true" >> "$GITHUB_OUTPUT"

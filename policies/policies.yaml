@@ -1,0 +1,22 @@
+# AegisAI Policy Engine configuration
+# trigger: dotted path into the detector output (see app/governance/detectors.py)
+# action: BLOCK | REVIEW_REQUIRED
+policies:
+  - name: block_prompt_injection
+    trigger: prompt_injection.detected
+    action: BLOCK
+  - name: block_jailbreak
+    trigger: jailbreak.detected
+    action: BLOCK
+  - name: block_tool_abuse
+    trigger: tool_abuse.detected
+    action: BLOCK
+  - name: block_exfiltration
+    trigger: exfiltration.detected
+    action: BLOCK
+  - name: block_sensitive_secrets
+    trigger: sensitive_data.detected
+    action: BLOCK
+  - name: review_pii
+    trigger: pii.detected
+    action: REVIEW_REQUIRED

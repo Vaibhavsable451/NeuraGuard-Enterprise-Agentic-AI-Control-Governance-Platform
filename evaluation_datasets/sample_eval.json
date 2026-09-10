@@ -1,0 +1,14 @@
+[
+  {
+    "question": "What is our data retention policy?",
+    "expected_terms": ["retention", "days", "delete"]
+  },
+  {
+    "question": "What is our policy on remote work?",
+    "expected_terms": ["remote", "work", "policy"]
+  },
+  {
+    "question": "How should employees report a security incident?",
+    "expected_terms": ["security", "incident", "report"]
+  }
+]
