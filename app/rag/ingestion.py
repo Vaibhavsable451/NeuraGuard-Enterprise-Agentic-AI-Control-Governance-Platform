@@ -2,7 +2,6 @@
 import time
 from app.rag.embeddings import embed_batch
 from app.rag import vectorstore
-from app.observability.tracing import trace_retrieval
 
 DEFAULT_NAMESPACE = "default"
 

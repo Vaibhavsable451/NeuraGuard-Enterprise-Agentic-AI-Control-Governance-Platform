@@ -1,5 +1,5 @@
 """Typed LangGraph state shared across all agents."""
-from typing import TypedDict, Optional, Any
+from typing import TypedDict
 
 
 class AgentState(TypedDict, total=False):

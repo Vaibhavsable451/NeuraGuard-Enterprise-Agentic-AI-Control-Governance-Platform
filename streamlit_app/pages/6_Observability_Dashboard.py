@@ -30,10 +30,14 @@ def show_trace(data, label):
     else:
         st.info(f"No {label} traces recorded yet.")
 
-with tab1: show_trace(traces.get("agents", []), "agent")
-with tab2: show_trace(traces.get("retrieval", []), "retrieval")
-with tab3: show_trace(traces.get("llm", []), "LLM")
-with tab4: show_trace(traces.get("tools", []), "tool")
+with tab1:
+    show_trace(traces.get("agents", []), "agent")
+with tab2:
+    show_trace(traces.get("retrieval", []), "retrieval")
+with tab3:
+    show_trace(traces.get("llm", []), "LLM")
+with tab4:
+    show_trace(traces.get("tools", []), "tool")
 with tab5:
     errors = traces.get("errors", [])
     if errors:

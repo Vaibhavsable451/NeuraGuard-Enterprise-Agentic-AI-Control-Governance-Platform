@@ -1,4 +1,4 @@
-from app.evaluation.evaluator import evaluate_rag, evaluate_agents, evaluate_safety
+from app.evaluation.evaluator import evaluate_rag, evaluate_safety
 
 
 def test_evaluate_rag_returns_scores():
