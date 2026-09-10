@@ -25,63 +25,49 @@ jobs:
           script: |
             set -e
 
-            echo "=== Starting deployment ==="
-
             cd ~/NeuraGuard-Enterprise-Agentic-AI-Control-Governance-Platform || cd ~/aegis-ai || exit 1
 
             echo "=== Pulling latest code ==="
             git pull origin main
 
-            echo "=== Checking virtual environment ==="
-            if [ ! -x ".venv/bin/python" ]; then
-              python3 -m venv .venv
-            fi
-
             echo "=== Installing dependencies ==="
-            .venv/bin/python -m pip install --upgrade pip --quiet
             .venv/bin/python -m pip install -r requirements.txt
 
-            echo "=== Stopping old FastAPI process ==="
+            echo "=== Stopping old services ==="
             if [ -f fastapi.pid ]; then
-              kill "$(cat fastapi.pid)" 2>/dev/null || true
+              kill $(cat fastapi.pid) 2>/dev/null || true
               rm -f fastapi.pid
             fi
 
-            echo "=== Stopping old Streamlit process ==="
             if [ -f streamlit.pid ]; then
-              kill "$(cat streamlit.pid)" 2>/dev/null || true
+              kill $(cat streamlit.pid) 2>/dev/null || true
               rm -f streamlit.pid
             fi
 
             sleep 2
 
-            echo "=== Starting FastAPI Backend ==="
+            echo "=== Starting FastAPI ==="
             nohup .venv/bin/uvicorn app.api.main:app \
               --host 0.0.0.0 \
               --port 8000 \
-              </dev/null > logs_api.log 2>&1 &
-
+              > logs_api.log 2>&1 < /dev/null &
             echo $! > fastapi.pid
 
-            echo "=== Starting Streamlit Frontend ==="
+            echo "=== Starting Streamlit ==="
             nohup .venv/bin/streamlit run streamlit_app/app.py \
               --server.port 8501 \
               --server.address 0.0.0.0 \
-              </dev/null > logs_streamlit.log 2>&1 &
-
+              > logs_streamlit.log 2>&1 < /dev/null &
             echo $! > streamlit.pid
 
             sleep 3
 
-            echo "=== Checking processes ==="
-            ps -p "$(cat fastapi.pid)" -o pid,cmd || true
-            ps -p "$(cat streamlit.pid)" -o pid,cmd || true
+            echo "=== Checking services ==="
+            curl -s http://127.0.0.1:8000/docs > /dev/null
+            curl -s http://127.0.0.1:8501 > /dev/null
 
-            echo "=== Testing ports ==="
-            curl -I http://127.0.0.1:8000/docs || true
-            curl -I http://127.0.0.1:8501 || true
+            echo "=== DEPLOYMENT SUCCESS ==="
 
-            echo "=== Deployment completed successfully ==="
 
 
 
