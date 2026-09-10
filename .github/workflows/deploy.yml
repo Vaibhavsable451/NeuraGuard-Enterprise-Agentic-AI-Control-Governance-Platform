@@ -17,18 +17,19 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
           script: |
             cd ~/NeuraGuard-Enterprise-Agentic-AI-Control-Governance-Platform || cd ~/aegis-ai || exit 1
 
-            echo "Pulling latest code from main..."
+            echo "=== Pulling latest code from main ==="
             git pull origin main
 
-            echo "Setting up Python virtual environment..."
+            echo "=== Setting up Python virtual environment ==="
             if [ ! -d ".venv" ]; then
               python3 -m venv .venv || (sudo apt-get update && sudo apt-get install -y python3-venv python3-pip && python3 -m venv .venv)
             fi
 
-            echo "Installing Python dependencies..."
+            echo "=== Installing Python dependencies ==="
             if [ -f ".venv/bin/pip" ]; then
               .venv/bin/pip install --upgrade pip --quiet
               .venv/bin/pip install -r requirements.txt
@@ -36,23 +37,33 @@ jobs:
               pip install --break-system-packages -r requirements.txt
             fi
 
-            echo "Restarting FastAPI Backend (Port 8000)..."
+            echo "=== Stopping existing processes ==="
             pkill -f '[u]vicorn app.api.main:app' || true
-            if [ -f ".venv/bin/uvicorn" ]; then
-              nohup .venv/bin/uvicorn app.api.main:app --host 0.0.0.0 --port 8000 > logs_api.log 2>&1 &
-            else
-              nohup uvicorn app.api.main:app --host 0.0.0.0 --port 8000 > logs_api.log 2>&1 &
-            fi
-
-            echo "Restarting Streamlit Frontend (Port 8501)..."
             pkill -f '[s]treamlit run' || true
-            if [ -f ".venv/bin/streamlit" ]; then
-              nohup .venv/bin/streamlit run streamlit_app/app.py --server.port 8501 --server.address 0.0.0.0 > logs_streamlit.log 2>&1 &
+            sleep 1
+
+            echo "=== Starting FastAPI Backend (Port 8000) ==="
+            if [ -f ".venv/bin/uvicorn" ]; then
+              nohup .venv/bin/uvicorn app.api.main:app --host 0.0.0.0 --port 8000 </dev/null > logs_api.log 2>&1 &
             else
-              nohup streamlit run streamlit_app/app.py --server.port 8501 --server.address 0.0.0.0 > logs_streamlit.log 2>&1 &
+              nohup uvicorn app.api.main:app --host 0.0.0.0 --port 8000 </dev/null > logs_api.log 2>&1 &
             fi
+            disown
+
+            echo "=== Starting Streamlit Frontend (Port 8501) ==="
+            if [ -f ".venv/bin/streamlit" ]; then
+              nohup .venv/bin/streamlit run streamlit_app/app.py --server.port 8501 --server.address 0.0.0.0 </dev/null > logs_streamlit.log 2>&1 &
+            else
+              nohup streamlit run streamlit_app/app.py --server.port 8501 --server.address 0.0.0.0 </dev/null > logs_streamlit.log 2>&1 &
+            fi
+            disown
+
+            sleep 2
+            echo "=== Active Processes ==="
+            ps aux | grep -E '[u]vicorn|[s]treamlit' || true
 
             echo "Deployment completed successfully on AWS EC2!"
+
 
 
 
