@@ -2,7 +2,7 @@ import os
 import requests
 import streamlit as st
 
-API_BASE = os.getenv("AEGIS_API_BASE", "http://127.0.0.1:8000")
+API_BASE = os.getenv("NEURAGUARD_API_BASE", os.getenv("AEGIS_API_BASE", "http://127.0.0.1:8000"))
 
 
 def check_backend_status() -> bool:

@@ -30,30 +30,88 @@
 ## 🛠️ Architecture Overview
 
 ```text
-                                  ┌────────────────────────┐
-                                  │   User / Enterprise    │
-                                  └───────────┬────────────┘
-                                              │
-                                              ▼
-                             ┌──────────────────────────────────┐
-                             │   NeuraGuard Streamlit UI        │
-                             │   (Control Plane Port 8501)      │
-                             └────────────────┬─────────────────┘
-                                              │ HTTP
-                                              ▼
-                             ┌──────────────────────────────────┐
-                             │    FastAPI Governance Backend    │
-                             │         (Port 8000)              │
-                             └────────────────┬─────────────────┘
-                                              │
-                    ┌─────────────────────────┼─────────────────────────┐
-                    ▼                         ▼                         ▼
-        ┌───────────────────────┐ ┌───────────────────────┐ ┌───────────────────────┐
-        │  Governance & Risk    │ │ LangGraph Multi-Agent │ │ 11-Pipeline RAG Engine│
-        │  • PII Redaction      │ │ • Supervisor Agent    │ │ • Pinecone Vector DB  │
-        │  • Prompt Injection   │ │ • Research Agent      │ │ • Reranker & Grounded │
-        │  • Policy Engine      │ │ • Verification Agent  │ │ • Dense/Sparse Fusion │
-        └───────────────────────┘ └───────────────────────┘ └───────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                          👤  User / Enterprise Client                               │
+└───────────────────────────────────────┬─────────────────────────────────────────────┘
+                                        │
+                                        ▼
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│              🖥️  NeuraGuard Streamlit Control Plane  (Port 8501)                    │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │
+│  │💬 AI Chat│ │🔍 RAG    │ │🤖 Agents │ │🛡️ Govern.│ │🧪 Eval.  │ │📊 Observ.│   │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘   │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐                                            │
+│  │💰 FinOps │ │🚨 Incid. │ │👤 Human  │                                            │
+│  └──────────┘ └──────────┘ └──────────┘                                            │
+└───────────────────────────────────────┬─────────────────────────────────────────────┘
+                                        │ HTTP / REST
+                                        ▼
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                  ⚙️  FastAPI Governance Backend  (Port 8000)                         │
+│  /chat  /rag/*  /agents/*  /governance/*  /evaluation/*  /finops/*                 │
+│  /incidents/*  /approvals/*  /rag/status  /rag/documents  /documents/upload        │
+└───────┬───────────────┬───────────────┬───────────────┬───────────────┬─────────────┘
+        │               │               │               │               │
+        ▼               ▼               ▼               ▼               ▼
+┌───────────────┐ ┌─────────────┐ ┌───────────────┐ ┌───────────┐ ┌───────────────┐
+│ 🛡️ Governance │ │ 🤖 LangGraph│ │ 🔍 RAG Engine │ │ 📊 Observ │ │ 💰 FinOps     │
+│ & Risk Engine │ │ Multi-Agent │ │ 11 Strategies │ │ & Tracing │ │ & Cost Track  │
+│               │ │  Workflow   │ │               │ │           │ │               │
+│ detectors.py  │ │ graph.py    │ │ naive         │ │ tracing.py│ │ cost.py       │
+│ • PII Scanner │ │ state.py    │ │ advanced      │ │ • Latency │ │ • Token usage │
+│ • Inj. Guard  │ │             │ │ hybrid        │ │ • Errors  │ │ • Per-agent $ │
+│ guardrails.py │ │ agents.py   │ │ agentic       │ │ • Traces  │ │ • Anomalies   │
+│ • Claim Verif │ │ 8 Agents:   │ │ multi_agent   │ │           │ │ • Budget tips │
+│ • Jailbreak   │ │ Supervisor  │ │ graph         │ │ reliab.py │ │               │
+│ policy.py     │ │ Research    │ │ multimodal    │ │ • Circuit │ │               │
+│ • YAML Rules  │ │ RAG         │ │ conversational│ │   Breaker │ │               │
+│ • NIST AI RMF │ │ Data Analy. │ │ self_rag      │ │ • Retries │ │               │
+│ risk.py       │ │ Vision      │ │ corrective    │ │           │ │               │
+│ • Risk Score  │ │ Compliance  │ │ modular       │ │           │ │               │
+│ • Block/Review│ │ Risk        │ │               │ │           │ │               │
+│               │ │ Verification│ │ vectorstore.py│ │           │ │               │
+└───────┬───────┘ └──────┬──────┘ │ embeddings.py │ └───────────┘ └───────────────┘
+        │                │        │ reranker.py   │
+        │                │        │ ingestion.py  │
+        ▼                ▼        └───────┬───────┘
+┌───────────────┐ ┌─────────────┐         │
+│ 🧪 Evaluation │ │ 🚨 Incidents│         ▼
+│   Engine      │ │ Self-Healing│ ┌───────────────┐   ┌───────────────┐
+│               │ │             │ │  🗄️ Pinecone  │   │  📂 In-Memory │
+│ evaluator.py  │ │ engine.py   │ │  Vector DB    │   │  VectorStore  │
+│ • Groundedness│ │ • Failure   │ │  (Cloud RAG)  │   │  (MOCK_MODE)  │
+│ • Safety Score│ │   Detection │ └───────────────┘   └───────────────┘
+│ • RAGAS-style │ │ • Retry     │
+│ • CI/CD Gate  │ │ • Fallback  │ ┌──────────────────────────────────┐
+│               │ │ • Escalate  │ │  🔧 Shared Tools & Infra         │
+└───────────────┘ └──────┬──────┘ │  tools/llm_client.py             │
+                          │        │  • Groq LLM (openai/gpt-oss-120b)│
+┌───────────────┐         │        │  • Fallback Model (-20b)         │
+│ 👤 Human      │         │        │  • MOCK_MODE stub                │
+│ Approval Queue│◄────────┘        │                                  │
+│               │                  │  app/storage.py                  │
+│ approval_     │                  │  • Incident store (JSON)         │
+│ queue.py      │                  │  • Approval queue (JSON)         │
+│ REVIEW_REQUIRED                  │  • Audit log (JSON)              │
+│ Approve/Reject│                  └──────────────────────────────────┘
+└───────────────┘
+                         ┌──────────────────────────────────────────┐
+                         │  🧨 Automated Red-Teaming                │
+                         │  app/redteam/attacks.py                  │
+                         │  10 attack vectors:                      │
+                         │  Jailbreak · Prompt Injection            │
+                         │  Secret Exfiltration · Role Hijacking    │
+                         │  DAN · Token Overflow · Encoding Bypass  │
+                         │  Multi-turn Manipulation · Tool Abuse    │
+                         │  Instruction Hijacking                   │
+                         └──────────────────────────────────────────┘
+
+                         ┌──────────────────────────────────────────┐
+                         │  📋 Policy & Compliance Engine            │
+                         │  policies/policies.yaml                  │
+                         │  NIST.AI.100-1.pdf (NIST AI RMF)        │
+                         │  evaluation_datasets/ (RAGAS benchmarks) │
+                         └──────────────────────────────────────────┘
 ```
 
 ---
@@ -92,7 +150,7 @@ GROQ_FALLBACK_MODEL=openai/gpt-oss-20b
 
 # --- Vector Store (Pinecone) ---
 PINECONE_API_KEY=pcsk_your_pinecone_api_key_here
-PINECONE_INDEX_NAME=aegis-ai-index
+PINECONE_INDEX_NAME=neuraguard-index
 ```
 
 ### 3. Start Backend & Frontend
