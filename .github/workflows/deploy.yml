@@ -63,6 +63,8 @@ jobs:
             ps aux | grep -E '[u]vicorn|[s]treamlit' || true
 
             echo "Deployment completed successfully on AWS EC2!"
+# Trigger run for aa6641b disown fix
+
 
 
 
