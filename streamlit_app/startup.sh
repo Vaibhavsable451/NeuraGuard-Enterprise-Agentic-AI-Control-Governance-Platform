@@ -1,4 +1,5 @@
 #!/bin/bash
-# Azure App Service startup command for the Streamlit frontend (no Docker).
+# AWS EC2 startup command for the Streamlit frontend.
 pip install -r requirements.txt
-streamlit run streamlit_app/app.py --server.port 8000 --server.address 0.0.0.0
+streamlit run streamlit_app/app.py --server.port 8501 --server.address 0.0.0.0
+

@@ -1,4 +1,4 @@
-name: Deploy to Azure
+name: Deploy to AWS EC2
 
 on:
   workflow_run:
@@ -11,26 +11,24 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Deploy to AWS EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          python-version: "3.11"
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/NeuraGuard-Enterprise-Agentic-AI-Control-Governance-Platform || cd ~/aegis-ai || exit 1
+            git pull origin main
+            pip install -r requirements.txt
+            
+            # Restart FastAPI Backend (Port 8000)
+            pkill -f "uvicorn app.api.main:app" || true
+            nohup uvicorn app.api.main:app --host 0.0.0.0 --port 8000 > logs_api.log 2>&1 &
+            
+            # Restart Streamlit Frontend (Port 8501)
+            pkill -f "streamlit run" || true
+            nohup streamlit run streamlit_app/app.py --server.port 8501 --server.address 0.0.0.0 > logs_streamlit.log 2>&1 &
+            
+            echo "Deployment completed successfully on AWS EC2!"
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Deploy FastAPI backend to Azure App Service
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ secrets.AZURE_API_APP_NAME }}
-          publish-profile: ${{ secrets.AZURE_API_PUBLISH_PROFILE }}
-          package: .
-
-      - name: Deploy Streamlit frontend to Azure App Service
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ secrets.AZURE_STREAMLIT_APP_NAME }}
-          publish-profile: ${{ secrets.AZURE_STREAMLIT_PUBLISH_PROFILE }}
-          package: .

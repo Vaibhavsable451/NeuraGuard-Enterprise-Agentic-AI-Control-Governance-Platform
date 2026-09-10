@@ -182,6 +182,38 @@ uv run python scripts/run_evaluation_gate.py
 
 ---
 
+## ☁️ Continuous Deployment to AWS EC2
+
+This repository automatically deploys to an **AWS EC2** instance via SSH using GitHub Actions (`.github/workflows/deploy.yml`) upon successful completion of both **CI** and **Evaluation Gate** workflows on the `main` branch.
+
+### Required GitHub Repository Secrets
+
+Configure the following secrets under **Settings > Secrets and variables > Actions**:
+
+| Secret | Description | Example |
+| :--- | :--- | :--- |
+| `EC2_HOST` | Public IP or DNS of your AWS EC2 instance | `54.210.12.34` or `ec2-xx.compute-1.amazonaws.com` |
+| `EC2_USER` | SSH login username | `ubuntu` or `ec2-user` |
+| `EC2_SSH_KEY` | Private SSH key (`.pem` file content) | `-----BEGIN RSA PRIVATE KEY-----...` |
+
+### EC2 Security Group & Ports
+
+Ensure the following inbound ports are allowed in your AWS EC2 Security Group:
+- `8000`: FastAPI Backend
+- `8501`: Streamlit Frontend UI
+- `22`: SSH Access for GitHub Actions
+
+### One-Click Startup Script on EC2
+
+To launch or restart services directly on your EC2 instance:
+```bash
+chmod +x startup.sh
+./startup.sh
+```
+
+
+---
+
 ## 📊 Dashboard Modules (Streamlit Frontend)
 
 | # | Page | Path | Key Functionality |
